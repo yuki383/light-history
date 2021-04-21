@@ -1,9 +1,12 @@
 function createEvents<F extends () => void>() {
-  const handlers: F[] = [];
+  let handlers: F[] = [];
 
   return {
     push(fn: F) {
       handlers.push(fn);
+      return () => {
+        handlers = handlers.filter((handler) => handler !== fn);
+      };
     },
     call() {
       handlers.forEach((fn) => fn());
@@ -11,25 +14,34 @@ function createEvents<F extends () => void>() {
   };
 }
 
-function craeteHistory() {
+export function createHistory() {
   const listeners = createEvents();
 
-	function applyTransition() {
-		listeners.call();
-	}
+  function applyTransition() {
+    listeners.call();
+  }
 
   function go(i: number) {
     history.go(i);
   }
 
   function listen(fn: () => void) {
-    listeners.push(fn);
+    return listeners.push(fn);
   }
 
+  function push(to: string) {
+    history.pushState({}, "", to);
+    applyTransition();
+  }
 
-	window.addEventListener("popstate", () => {
-		applyTransition();
-	});
+  function replace(to: string) {
+    history.replaceState({}, "", to);
+    applyTransition();
+  }
+
+  window.addEventListener("popstate", () => {
+    applyTransition();
+  });
 
   return {
     listen,
@@ -40,6 +52,8 @@ function craeteHistory() {
     forward() {
       go(1);
     },
+    push,
+    replace,
   };
 }
 
