@@ -1,4 +1,4 @@
-function createEvents<F extends () => void>() {
+function createEvents<F extends (args: A) => void, A>() {
   let handlers: F[] = [];
 
   return {
@@ -8,24 +8,41 @@ function createEvents<F extends () => void>() {
         handlers = handlers.filter((handler) => handler !== fn);
       };
     },
-    call() {
-      handlers.forEach((fn) => fn());
+    call(args: A) {
+      handlers.forEach((fn) => fn(args));
     },
   };
 }
 
+export type Location = {
+	pathname: string;
+	search: string;
+	hash: string;
+};
+
+type Listener = (location: Location) => void;
+
 export function createHistory() {
-  const listeners = createEvents();
+  const listeners = createEvents<Listener, Location>();
+
+	function getLocation() {
+		return {
+			pathname: location.pathname,
+			search: location.search,
+			hash: location.hash,
+		}
+	}
 
   function applyTransition() {
-    listeners.call();
+		const location = getLocation();
+    listeners.call(location);
   }
 
   function go(i: number) {
     history.go(i);
   }
 
-  function listen(fn: () => void) {
+  function listen(fn: (location: Location) => void) {
     return listeners.push(fn);
   }
 
